@@ -2,18 +2,19 @@
 
 TESTS="$@"
 RET=0
-
 TIMEOUT=60
-FAILED=""
-MAYBE_FAILED=""
-
-do_kmsg="1"
-if ! [ $(id -u) = 0 ]; then
-	do_kmsg="0"
-fi
-
+DMESG_FILTER="cat"
 TEST_DIR=$(dirname $0)
 TEST_FILES=""
+FAILED=""
+SKIPPED=""
+MAYBE_FAILED=""
+
+# Only use /dev/kmsg if running as root
+DO_KMSG="1"
+[ "$(id -u)" != "0" ] && DO_KMSG="0"
+
+# Include config.local if exists and check TEST_FILES for valid devices
 if [ -f "$TEST_DIR/config.local" ]; then
 	. $TEST_DIR/config.local
 	for dev in $TEST_FILES; do
@@ -29,7 +30,7 @@ _check_dmesg()
 	local dmesg_marker="$1"
 	local seqres="$2.seqres"
 
-	if [[ $do_kmsg -eq 0 ]]; then
+	if [ $DO_KMSG -eq 0 ]; then
 		return 0
 	fi
 
@@ -56,68 +57,77 @@ _check_dmesg()
 
 run_test()
 {
-	T="$1"
-	D="$2"
-	DMESG_FILTER="cat"
+	local test_name="$1"
+	local dev="$2"
+	local test_string=$test_name
 
-	if [ "$do_kmsg" -eq 1 ]; then
-		if [ -z "$D" ]; then
-			local dmesg_marker="Running test $T:"
-		else
-			local dmesg_marker="Running test $T $D:"
-		fi
+	# Specify test string to print
+	if [ -n "$dev" ]; then
+		test_string="$test_name $dev"
+	fi
+
+	# Log start of the test
+	if [ "$DO_KMSG" -eq 1 ]; then
+		local dmesg_marker="Running test $test_string:"
 		echo $dmesg_marker | tee /dev/kmsg
 	else
 		local dmesg_marker=""
-		echo Running test $T $D
+		echo Running test $test_name $dev
 	fi
-	timeout --preserve-status -s INT -k $TIMEOUT $TIMEOUT ./$T $D
-	r=$?
-	if [ "${r}" -eq 124 ]; then
-		echo "Test $T timed out (may not be a failure)"
-	elif [ "${r}" -ne 0 ]; then
-		echo "Test $T failed with ret ${r}"
-		if [ -z "$D" ]; then
-			FAILED="$FAILED <$T>"
-		else
-			FAILED="$FAILED <$T $D>"
-		fi
+
+	# Do we have to exclude the test ?
+	echo $TEST_EXCLUDE | grep -w "$test_name" > /dev/null 2>&1
+	if [ $? -eq 0 ]; then
+		echo "Test skipped"
+		SKIPPED="$SKIPPED <$test_string>"
+		return
+	fi
+
+	# Run the test
+	timeout --preserve-status -s INT -k $TIMEOUT $TIMEOUT ./$test_name $dev
+	local status=$?
+
+	# Check test status
+	if [ "$status" -eq 124 ]; then
+		echo "Test $test_name timed out (may not be a failure)"
+	elif [ "$status" -ne 0 ]; then
+		echo "Test $test_name failed with ret $status"
+		FAILED="$FAILED <$test_string>"
 		RET=1
-	elif ! _check_dmesg "$dmesg_marker" "$T"; then
-		echo "Test $T failed dmesg check"
-		if [ -z "$D" ]; then
-			FAILED="$FAILED <$T>"
-		else
-			FAILED="$FAILED <$T $D>"
-		fi
+	elif ! _check_dmesg "$dmesg_marker" "$test_name"; then
+		echo "Test $test_name failed dmesg check"
+		FAILED="$FAILED <$test_string>"
 		RET=1
-	elif [ ! -z "$D" ]; then
+	elif [ -n "$dev" ]; then
 		sleep .1
 		ps aux | grep "\[io_wq_manager\]" > /dev/null
-		R="$?"
-		if [ "$R" -eq 0 ]; then
-			MAYBE_FAILED="$MAYBE_FAILED $T"
+		if [ $? -eq 0 ]; then
+			MAYBE_FAILED="$MAYBE_FAILED $test_string"
 		fi
 	fi
 }
 
-for t in $TESTS; do
-	run_test $t
+# Run all specified tests
+for tst in $TESTS; do
+	run_test $tst
 	if [ ! -z "$TEST_FILES" ]; then
 		for dev in $TEST_FILES; do
-			run_test $t $dev
+			run_test $tst $dev
 		done
 	fi
 done
 
-if [ "${RET}" -ne 0 ]; then
-	echo "Tests $FAILED failed"
+if [ -n "$SKIPPED" ]; then
+	echo "Tests skipped: $SKIPPED"
+fi
+
+if [ ${RET} -ne 0 ]; then
+	echo "Tests failed: $FAILED"
 	exit $RET
 else
 	sleep 1
 	ps aux | grep "\[io_wq_manager\]" > /dev/null
-	R="$?"
-	if [ "$R" -ne 0 ]; then
+	if [ $? -ne 0 ]; then
 		MAYBE_FAILED=""
 	fi
 	if [ ! -z "$MAYBE_FAILED" ]; then
