@@ -83,29 +83,42 @@ run_test()
 	# Do we have to exclude the test ?
 	echo $TEST_EXCLUDE | grep -w "$test_name" > /dev/null 2>&1
 	if [ $? -eq 0 ]; then
-		echo "Test skipped"
+		echo "Test skipped by user" | tee ${test_name}.skipped
 		SKIPPED="$SKIPPED <$test_string>"
 		return
 	fi
 
+	# Prepare log file name
+	if [ -n "$dev" ]; then
+		local logfile=$(echo "${test_name}_${dev}" | \
+			    sed 's/\(\/\|_\/\|\/_\)/_/g')
+	else
+		local logfile=${test_name}
+	fi
+
 	# Run the test
-	timeout --preserve-status -s INT -k $TIMEOUT $TIMEOUT ./$test_name $dev
-	local status=$?
+	timeout --preserve-status -s INT -k $TIMEOUT $TIMEOUT \
+		./$test_name $dev 2>&1 | tee ${logfile}.log
+	local status=${PIPESTATUS[0]}
 
 	# Check test status
 	if [ "$status" -eq 124 ]; then
 		echo "Test $test_name timed out (may not be a failure)"
+		mv ${logfile}.log ${logfile}.timeout
 	elif [ "$status" -ne 0 ] && [ "$status" -ne 255 ]; then
 		echo "Test $test_name failed with ret $status"
 		FAILED="$FAILED <$test_string>"
 		RET=1
+		mv ${logfile}.log ${logfile}.failed
 	elif ! _check_dmesg "$dmesg_marker" "$test_name" "$dev"; then
 		echo "Test $test_name failed dmesg check"
 		FAILED="$FAILED <$test_string>"
 		RET=1
+		mv ${logfile}.log ${logfile}.failed
 	elif [ "$status" -eq 255 ]; then
 		echo "Test skipped"
 		SKIPPED="$SKIPPED <$test_string>"
+		mv ${logfile}.log ${logfile}.skipped
 	elif [ -n "$dev" ]; then
 		sleep .1
 		ps aux | grep "\[io_wq_manager\]" > /dev/null
@@ -113,7 +126,15 @@ run_test()
 			MAYBE_FAILED="$MAYBE_FAILED $test_string"
 		fi
 	fi
+
+	# Only leave behing log file with some content in it
+	if [ ! -s "${logfile}.log" ]; then
+		rm -f ${logfile}.log
+	fi
 }
+
+# Clean up all the logs from previous run
+rm -f *.{log,timeout,failed,skipped,dmesg}
 
 # Run all specified tests
 for tst in $TESTS; do
