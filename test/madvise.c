@@ -93,7 +93,7 @@ static int do_madvise(struct io_uring *ring, void *addr, off_t len, int advice)
 	if (ret == -EINVAL || ret == -EBADF) {
 		fprintf(stdout, "Madvise not supported, skipping\n");
 		unlink(".madvise.tmp");
-		exit(0);
+		exit(-1);
 	} else if (ret) {
 		fprintf(stderr, "cqe->res=%d\n", cqe->res);
 	}

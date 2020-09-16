@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 	}
 	if (!(params.features & IORING_FEAT_SUBMIT_STABLE)) {
 		fprintf(stdout, "FEAT_SUBMIT_STABLE not there, skipping\n");
-		return 0;
+		return -1;
 	}
 
 	memset(&hints, 0, sizeof(hints));

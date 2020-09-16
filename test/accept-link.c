@@ -105,7 +105,7 @@ void *recv_thread(void *arg)
 		printf("Can't find good port, skipped\n");
 		data->stop = 1;
 		signal_var(&recv_thread_ready);
-		goto out;
+		goto skip;
 	}
 
         assert(listen(s0, 128) != -1);
@@ -158,12 +158,14 @@ ok:
 
 	signal_var(&recv_thread_done);
 
-out:
 	close(s0);
 	return NULL;
 err:
 	close(s0);
 	return (void *) 1;
+skip:
+	close(s0);
+	return (void *) -1;
 }
 
 static int test_accept_timeout(int do_connect, unsigned long timeout)

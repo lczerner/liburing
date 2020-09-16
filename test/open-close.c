@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
 {
 	struct io_uring ring;
 	const char *path, *path_rel;
-	int ret, do_unlink;
+	int ret, do_unlink, err = 0;
 
 	ret = io_uring_queue_init(8, &ring, 0);
 	if (ret) {
@@ -131,38 +131,37 @@ int main(int argc, char *argv[])
 	if (ret < 0) {
 		if (ret == -EINVAL) {
 			fprintf(stdout, "Open not supported, skipping\n");
-			goto done;
+			err = -1;
+			goto out;
 		}
 		fprintf(stderr, "test_openat absolute failed: %d\n", ret);
-		goto err;
+		err = 1;
+		goto out;
 	}
 
 	ret = test_openat(&ring, path_rel, AT_FDCWD);
 	if (ret < 0) {
 		fprintf(stderr, "test_openat relative failed: %d\n", ret);
-		goto err;
+		err = 1;
+		goto out;
 	}
 
 	ret = test_close(&ring, ret, 0);
 	if (ret) {
 		fprintf(stderr, "test_close normal failed\n");
-		goto err;
+		err = 1;
+		goto out;
 	}
 
 	ret = test_close(&ring, ring.ring_fd, 1);
 	if (ret != -EBADF) {
 		fprintf(stderr, "test_close ring_fd failed\n");
-		goto err;
+		err = 1;
 	}
 
-done:
+out:
 	unlink(path);
 	if (do_unlink)
 		unlink(path_rel);
-	return 0;
-err:
-	unlink(path);
-	if (do_unlink)
-		unlink(path_rel);
-	return 1;
+	return err;
 }

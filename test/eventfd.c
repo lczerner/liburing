@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
 	}
 	if (!(p.features & IORING_FEAT_CUR_PERSONALITY)) {
 		fprintf(stdout, "Skipping\n");
-		return 0;
+		return -1;
 	}
 
 	evfd = eventfd(0, EFD_CLOEXEC);

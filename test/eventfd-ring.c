@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
 	}
 	if (!(p.features & IORING_FEAT_CUR_PERSONALITY)) {
 		fprintf(stdout, "Skipping\n");
-		return 0;
+		return -1;
 	}
 	ret = io_uring_queue_init(8, &ring2, 0);
 	if (ret) {

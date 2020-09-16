@@ -35,7 +35,7 @@ static int test_cq_overflow(struct io_uring *ring)
 	flags = IO_URING_READ_ONCE(*ring->sq.kflags);
 	if (!(flags & IORING_SQ_CQ_OVERFLOW)) {
 		fprintf(stdout, "OVERFLOW not set on -EBUSY, skipping\n");
-		goto done;
+		goto skip;
 	}
 
 	while (issued) {
@@ -52,10 +52,11 @@ static int test_cq_overflow(struct io_uring *ring)
 		issued--;
 	}
 
-done:
 	return 0;
 err:
 	return 1;
+skip:
+	return -1;
 }
 
 int main(int argc, char *argv[])
@@ -74,7 +75,8 @@ int main(int argc, char *argv[])
 
 	ret = test_cq_overflow(&ring);
 	if (ret) {
-		fprintf(stderr, "test_cq_overflow failed\n");
+		if (ret != -1)
+			fprintf(stderr, "test_cq_overflow failed\n");
 		return 1;
 	}
 

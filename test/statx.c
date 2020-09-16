@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
 {
 	struct io_uring ring;
 	const char *fname;
-	int ret;
+	int ret, err = 0;
 
 	ret = io_uring_queue_init(8, &ring, 0);
 	if (ret) {
@@ -171,23 +171,22 @@ int main(int argc, char *argv[])
 	if (ret) {
 		if (ret == -EINVAL) {
 			fprintf(stdout, "statx not supported, skipping\n");
-			goto done;
+			err = -1;
+			goto out;
 		}
 		fprintf(stderr, "test_statx failed: %d\n", ret);
-		goto err;
+		err = 1;
+		goto out;
 	}
 
 	ret = test_statx_fd(&ring, fname);
 	if (ret) {
 		fprintf(stderr, "test_statx_fd failed: %d\n", ret);
-		goto err;
+		err = 1;
+		goto out;
 	}
-done:
+out:
 	if (fname != argv[1])
 		unlink(fname);
-	return 0;
-err:
-	if (fname != argv[1])
-		unlink(fname);
-	return 1;
+	return err;
 }

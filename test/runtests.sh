@@ -95,7 +95,7 @@ run_test()
 	# Check test status
 	if [ "$status" -eq 124 ]; then
 		echo "Test $test_name timed out (may not be a failure)"
-	elif [ "$status" -ne 0 ]; then
+	elif [ "$status" -ne 0 ] && [ "$status" -ne 255 ]; then
 		echo "Test $test_name failed with ret $status"
 		FAILED="$FAILED <$test_string>"
 		RET=1
@@ -103,6 +103,9 @@ run_test()
 		echo "Test $test_name failed dmesg check"
 		FAILED="$FAILED <$test_string>"
 		RET=1
+	elif [ "$status" -eq 255 ]; then
+		echo "Test skipped"
+		SKIPPED="$SKIPPED <$test_string>"
 	elif [ -n "$dev" ]; then
 		sleep .1
 		ps aux | grep "\[io_wq_manager\]" > /dev/null

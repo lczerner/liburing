@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
 	ret = io_uring_cq_eventfd_toggle(&ring, false);
 	if (ret) {
 		fprintf(stdout, "Skipping, CQ flags not available!\n");
-		return 0;
+		return -1;
 	}
 
 	sqe = io_uring_get_sqe(&ring);

@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
 		rlim.rlim_max = rlim.rlim_cur;
 		if (setrlimit(RLIMIT_NOFILE, &rlim) < 0) {
 			if (errno == EPERM)
-				goto err_nofail;
+				goto err_skip;
 			perror("setrlimit");
 			goto err_noring;
 		}
@@ -191,8 +191,8 @@ err:
 err_noring:
 	fprintf(stderr, "poll-many failed\n");
 	return 1;
-err_nofail:
+err_skip:
 	fprintf(stderr, "poll-many: not enough files available (and not root), "
 			"skipped\n");
-	return 0;
+	return -1;
 }

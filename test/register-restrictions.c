@@ -569,7 +569,7 @@ int main(int argc, char *argv[])
 	ret = test_restrictions_sqe_op();
 	if (ret == TEST_SKIPPED) {
 		printf("test_restrictions_sqe_op: skipped\n");
-		return 0;
+		return -1;
 	} else if (ret == TEST_FAILED) {
 		fprintf(stderr, "test_restrictions_sqe_op failed\n");
 		return ret;

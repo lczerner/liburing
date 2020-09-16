@@ -102,7 +102,7 @@ void *recv_thread(void *arg)
 		fprintf(stderr, "Can't find good port, skipped\n");
 		data->stop = 1;
 		signal_var(&recv_thread_ready);
-		goto out;
+		goto skip;
 	}
 
         assert(listen(s0, 128) != -1);
@@ -150,7 +150,6 @@ void *recv_thread(void *arg)
 		io_uring_cqe_seen(&ring, cqe);
 	}
 
-out:
 	signal_var(&recv_thread_done);
 	close(s0);
 	io_uring_queue_exit(&ring);
@@ -160,6 +159,11 @@ err:
 	close(s0);
 	io_uring_queue_exit(&ring);
 	return (void *) 1;
+skip:
+	signal_var(&recv_thread_done);
+	close(s0);
+	io_uring_queue_exit(&ring);
+	return (void *) -1;
 }
 
 static int test_poll_timeout(int do_connect, unsigned long timeout)

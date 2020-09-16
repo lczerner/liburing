@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (not_supported)
-		return 0;
+		return -1;
 
 	ret = test_timeout_overflow();
 	if (ret) {

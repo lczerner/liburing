@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
 
 	if (geteuid()) {
 		fprintf(stderr, "Not root, skipping\n");
-		return 0;
+		return -1;
 	}
 
 	ret = io_uring_queue_init(8, &ring, 0);
@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
 		return ret;
 	}
 	if (no_personality)
-		return 0;
+		return -1;
 
 	ret = test_invalid_personality(&ring);
 	if (ret) {

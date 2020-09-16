@@ -373,7 +373,7 @@ int main(int argc, char *argv[])
 		return ret;
 	}
 	if (no_accept)
-		return 0;
+		return -1;
 
 	ret = test_accept_sqpoll();
 	if (ret) {

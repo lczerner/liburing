@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
 		if (cqe->res) {
 			if (cqe->res == -EINVAL) {
 				fprintf(stdout, "Shutdown not supported, skipping\n");
-				goto done;
+				goto skip;
 			}
 			fprintf(stderr, "writev: %d\n", cqe->res);
 			goto err;
@@ -140,10 +140,12 @@ int main(int argc, char *argv[])
 		io_uring_cqe_seen(&m_io_uring, cqe);
 	}
 
-done:
 	io_uring_queue_exit(&m_io_uring);
 	return 0;
 err:
 	io_uring_queue_exit(&m_io_uring);
 	return 1;
+skip:
+	io_uring_queue_exit(&m_io_uring);
+	return -1;
 }

@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
 	if (ret) {
 		if (ret == -EINVAL) {
 			printf("Skipped, not supported on this kernel\n");
-			goto done;
+			return -1;
 		}
 		printf("ring setup failed\n");
 		return 1;
@@ -50,7 +50,6 @@ int main(int argc, char *argv[])
 		goto err;
 	}
 
-done:
 	return 0;
 err:
 	io_uring_queue_exit(&ring);

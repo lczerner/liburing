@@ -71,6 +71,7 @@ static int test_fallocate_rlimit(struct io_uring *ring)
 		goto err;
 	}
 	io_uring_cqe_seen(ring, cqe);
+
 out:
 	unlink(buf);
 	return 0;
@@ -150,9 +151,6 @@ static int test_fallocate_fsync(struct io_uring *ring)
 	struct stat st;
 	char buf[32];
 	int fd, ret, i;
-
-	if (no_fallocate)
-		return 0;
 
 	sprintf(buf, "./XXXXXX");
 	fd = mkstemp(buf);
@@ -235,6 +233,9 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "test_fallocate failed\n");
 		return ret;
 	}
+
+	if (no_fallocate)
+		return -1;
 
 	ret = test_fallocate_fsync(&ring);
 	if (ret) {

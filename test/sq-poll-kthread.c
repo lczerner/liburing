@@ -153,6 +153,7 @@ int main(int argc, char *argv[])
 	ret = test_sq_poll_kthread_stopped(true);
 	if (ret == TEST_SKIPPED) {
 		printf("test_sq_poll_kthread_stopped_exit: skipped\n");
+		return -1;
 	} else if (ret == TEST_FAILED) {
 		fprintf(stderr, "test_sq_poll_kthread_stopped_exit failed\n");
 		return ret;
@@ -161,6 +162,7 @@ int main(int argc, char *argv[])
 	ret = test_sq_poll_kthread_stopped(false);
 	if (ret == TEST_SKIPPED) {
 		printf("test_sq_poll_kthread_stopped_noexit: skipped\n");
+		return -1;
 	} else if (ret == TEST_FAILED) {
 		fprintf(stderr, "test_sq_poll_kthread_stopped_noexit failed\n");
 		return ret;

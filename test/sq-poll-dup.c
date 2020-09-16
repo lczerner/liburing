@@ -23,6 +23,7 @@
 
 static struct iovec *vecs;
 static struct io_uring rings[NR_RINGS];
+static int no_nonfixed;
 
 static int create_buffers(void)
 {
@@ -142,6 +143,7 @@ static int test(int fd, int do_dup_and_close, int close_ring)
 		/* no sharing for non-fixed either */
 		if (!(p.features & IORING_FEAT_SQPOLL_NONFIXED)) {
 			fprintf(stdout, "No SQPOLL sharing, skipping\n");
+			no_nonfixed = 1;
 			return 0;
 		}
 	}
@@ -214,6 +216,9 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "test 0 0 failed\n");
 		goto err;
 	}
+
+	if (no_nonfixed)
+		return -1;
 
 	ret = test(fd, 0, 1);
 	if (ret) {

@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
 		return ret;
 	}
 	if (no_probe)
-		return 0;
+		return -1;
 
 	ret = test_probe_helper(&ring);
 	if (ret) {

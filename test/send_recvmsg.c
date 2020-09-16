@@ -177,7 +177,6 @@ static void *recv_fn(void *data)
 		if (ret == -EINVAL) {
 			fprintf(stdout, "PROVIDE_BUFFERS not supported, skip\n");
 			goto out;
-			goto err;
 		} else if (ret < 0) {
 			fprintf(stderr, "PROVIDER_BUFFERS %d\n", ret);
 			goto err;

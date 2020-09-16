@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
 	if (ret) {
 		if (geteuid()) {
 			fprintf(stdout, "SQPOLL requires root, skipped\n");
-			return 0;
+			return -1;
 		}
 		fprintf(stderr, "ring create failed: %d\n", ret);
 		return 1;

@@ -42,7 +42,7 @@ static int test_attach(int ringfd)
 	ret = io_uring_queue_init_params(1, &ring2, &p);
 	if (ret == -EINVAL) {
 		fprintf(stdout, "Sharing not supported, skipping\n");
-		return 0;
+		return -1;
 	} else if (ret) {
 		fprintf(stderr, "Attach to id: %d\n", ret);
 		goto err;
@@ -76,7 +76,8 @@ int main(int argc, char *argv[])
 
 	ret = test_attach(ring.ring_fd);
 	if (ret) {
-		fprintf(stderr, "test_attach failed\n");
+		if (ret != -1)
+			fprintf(stderr, "test_attach failed\n");
 		return ret;
 	}
 

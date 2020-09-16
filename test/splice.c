@@ -472,6 +472,9 @@ int main(int argc, char *argv[])
 	if (!has_tee)
 		fprintf(stdout, "skip, doesn't support tee()\n");
 
+	if (!has_splice && !has_tee)
+		return -1;
+
 	ret = test_splice(&ring, &ctx);
 	if (ret) {
 		fprintf(stderr, "basic splice tests failed\n");

@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
 		/* no sharing for non-fixed either */
 		if (!(p.features & IORING_FEAT_SQPOLL_NONFIXED)) {
 			fprintf(stdout, "No SQPOLL sharing, skipping\n");
-			return 0;
+			return -1;
 		}
 	}
 

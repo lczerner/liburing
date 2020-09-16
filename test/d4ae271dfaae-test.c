@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
 
 	if (geteuid()) {
 		fprintf(stdout, "Test requires root, skipping\n");
-		return 0;
+		return -1;
 	}
 
 	memset(&p, 0, sizeof(p));
