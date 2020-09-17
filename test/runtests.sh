@@ -28,13 +28,18 @@ fi
 _check_dmesg()
 {
 	local dmesg_marker="$1"
-	local seqres="$2.seqres"
+	if [ -n "$3" ]; then
+		local dmesg_log=$(echo "${2}_${3}.dmesg" | \
+				  sed 's/\(\/\|_\/\|\/_\)/_/g')
+	else
+		local dmesg_log="${2}.dmesg"
+	fi
 
 	if [ $DO_KMSG -eq 0 ]; then
 		return 0
 	fi
 
-	dmesg | bash -c "$DMESG_FILTER" | grep -A 9999 "$dmesg_marker" >"${seqres}.dmesg"
+	dmesg | bash -c "$DMESG_FILTER" | grep -A 9999 "$dmesg_marker" >"$dmesg_log"
 	grep -q -e "kernel BUG at" \
 	     -e "WARNING:" \
 	     -e "BUG:" \
@@ -45,12 +50,12 @@ _check_dmesg()
 	     -e "INFO: possible circular locking dependency detected" \
 	     -e "general protection fault:" \
 	     -e "blktests failure" \
-	     "${seqres}.dmesg"
+	     "$dmesg_log"
 	# shellcheck disable=SC2181
 	if [[ $? -eq 0 ]]; then
 		return 1
 	else
-		rm -f "${seqres}.dmesg"
+		rm -f "$dmesg_log"
 		return 0
 	fi
 }
@@ -94,7 +99,7 @@ run_test()
 		echo "Test $test_name failed with ret $status"
 		FAILED="$FAILED <$test_string>"
 		RET=1
-	elif ! _check_dmesg "$dmesg_marker" "$test_name"; then
+	elif ! _check_dmesg "$dmesg_marker" "$test_name" "$dev"; then
 		echo "Test $test_name failed dmesg check"
 		FAILED="$FAILED <$test_string>"
 		RET=1
