@@ -161,6 +161,8 @@ run_test()
 	# Check test status
 	if [ "$status" -eq 124 ]; then
 		test_result timeout "${logfile}" "${test_string}"
+	elif [ "$status" -eq 137 ]; then
+		test_failed "${logfile}" "${test_string}" "process Killed"
 	elif [ "$status" -ne 0 ] && [ "$status" -ne 255 ]; then
 		test_result fail "${logfile}" "${test_string}" "status = $status"
 	elif ! _check_dmesg "$dmesg_marker" "$test_name" "$dev"; then
