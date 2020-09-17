@@ -9,6 +9,7 @@ TEST_FILES=""
 FAILED=""
 SKIPPED=""
 MAYBE_FAILED=""
+TESTNAME_WIDTH=40
 
 # Only use /dev/kmsg if running as root
 DO_KMSG="1"
@@ -60,6 +61,62 @@ _check_dmesg()
 	fi
 }
 
+test_result()
+{
+	local result=$1
+	local logfile=$2
+	local test_string=$3
+	local msg=$4
+
+	[ -n "$msg" ] && msg="($msg)"
+
+	local RES=""
+	local logfile_move=""
+	local logmsg=""
+
+	case $result in
+		pass)
+			RES="OK";;
+		skip)
+			RES="SKIP"
+			SKIPPED="$SKIPPED <$test_string>"
+			logfile_move="${logfile}.skipped"
+			log_msg="Test ${test_string} skipped"
+			;;
+		timeout)
+			RES="TIMEOUT"
+			logfile_move="${logfile}.timeout"
+			log_msg="Test $test_name timed out (may not be a failure)"
+			;;
+		fail)
+			RET=1
+			RES="FAIL"
+			FAILED="$FAILED <$test_string>"
+			logfile_move="${logfile}.failed"
+			log_msg="Test ${test_string} failed"
+			;;
+		*)
+			echo "Unexpected result"
+			exit 1
+			;;
+	esac
+
+	# Print the result of the test
+	printf "\t$RES $msg\n"
+
+	[ "$result" == "pass" ] && return
+
+	# Show the test log in case something went wrong
+	if [ -s "${logfile}.log" ]; then
+		cat "${logfile}.log" | sed 's/^\(.\)/    \1/'
+	fi
+
+	echo "$log_msg $msg" >> ${logfile}.log
+
+	# Rename the log
+	[ -n "${logfile_move}" ] && mv ${logfile}.log ${logfile_move}
+}
+
 run_test()
 {
 	local test_name="$1"
@@ -73,19 +130,12 @@ run_test()
 
 	# Log start of the test
 	if [ "$DO_KMSG" -eq 1 ]; then
-		local dmesg_marker="Running test $test_string:"
-		echo $dmesg_marker | tee /dev/kmsg
+		local dmesg_marker="Running test $test_string"
+		echo $dmesg_marker > /dev/kmsg
+		printf "%-${TESTNAME_WIDTH}s" "$test_string"
 	else
 		local dmesg_marker=""
-		echo Running test $test_name $dev
-	fi
-
-	# Do we have to exclude the test ?
-	echo $TEST_EXCLUDE | grep -w "$test_name" > /dev/null 2>&1
-	if [ $? -eq 0 ]; then
-		echo "Test skipped by user" | tee ${test_name}.skipped
-		SKIPPED="$SKIPPED <$test_string>"
-		return
+		printf "%-${TESTNAME_WIDTH}s" "$test_name $dev"
 	fi
 
 	# Prepare log file name
@@ -96,35 +146,36 @@ run_test()
 		local logfile=${test_name}
 	fi
 
+	# Do we have to exclude the test ?
+	echo $TEST_EXCLUDE | grep -w "$test_name" > /dev/null 2>&1
+	if [ $? -eq 0 ]; then
+		test_skipped "${logfile}" "$test_string" "by user"
+		return
+	fi
+
 	# Run the test
 	timeout --preserve-status -s INT -k $TIMEOUT $TIMEOUT \
-		./$test_name $dev 2>&1 | tee ${logfile}.log
+		./$test_name $dev > ${logfile}.log 2>&1
 	local status=${PIPESTATUS[0]}
 
 	# Check test status
 	if [ "$status" -eq 124 ]; then
-		echo "Test $test_name timed out (may not be a failure)"
-		mv ${logfile}.log ${logfile}.timeout
+		test_result timeout "${logfile}" "${test_string}"
 	elif [ "$status" -ne 0 ] && [ "$status" -ne 255 ]; then
-		echo "Test $test_name failed with ret $status"
-		FAILED="$FAILED <$test_string>"
-		RET=1
-		mv ${logfile}.log ${logfile}.failed
+		test_result fail "${logfile}" "${test_string}" "status = $status"
 	elif ! _check_dmesg "$dmesg_marker" "$test_name" "$dev"; then
-		echo "Test $test_name failed dmesg check"
-		FAILED="$FAILED <$test_string>"
-		RET=1
-		mv ${logfile}.log ${logfile}.failed
+		test_result fail "${logfile}" "${test_string}" "dmesg check"
 	elif [ "$status" -eq 255 ]; then
-		echo "Test skipped"
-		SKIPPED="$SKIPPED <$test_string>"
-		mv ${logfile}.log ${logfile}.skipped
+		test_result skip "${logfile}" "${test_string}"
 	elif [ -n "$dev" ]; then
 		sleep .1
 		ps aux | grep "\[io_wq_manager\]" > /dev/null
 		if [ $? -eq 0 ]; then
 			MAYBE_FAILED="$MAYBE_FAILED $test_string"
 		fi
+		test_result pass "${logfile}" "${test_string}"
+	else
+		test_result pass "${logfile}" "${test_string}"
 	fi
 
 	# Only leave behing log file with some content in it
